@@ -1,0 +1,242 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <title>Quản lý công nợ nâng cao</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script> 
+    
+  <style> 
+  
+    body { font-family: Arial; background: #f4f4f4; padding: 20px; } 
+    .card { background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); margin-bottom: 20px; }
+    input, select, button { padding: 6px 10px; margin: 5px 0; border-radius: 4px; border: 1px solid #ccc; }
+    .btn { background: #2c7be5; color: white; border: none; cursor: pointer; }
+    .btn:hover { background: #1a5edc; }
+    .btn-danger { background: #dc3545; }
+    .btn-warning { background: #ffc107; color: black; }
+    table { width: 100%; border-collapse: collapse; margin-top: 10px; }
+    th, td { border: 1px solid #ccc; padding: 8px; }
+    th { background: #f0f0f0; }
+
+    
+  </style>
+</head>
+<body>
+
+<div class="card">
+  <h2>Nhập giao dịch</h2>
+  <label>Mã KH: <input type="text" id="maKH" list="danhSachMa" oninput="layTenTuMa()"></label>
+  <datalist id="danhSachMa"></datalist><br>
+  <label>Tên KH: <input type="text" id="ten" list="danhSachTen"></label>
+  <datalist id="danhSachTen"></datalist><br>
+  <label>Ngày: <input type="date" id="ngay"></label><br>
+  <label>Loại: 
+    <select id="loai">
+      <option value="Ghi Nợ">Ghi Nợ</option>
+      <option value="Trả Nợ">Trả Nợ</option>
+    </select>
+  </label><br>
+  <label>Tên hàng hóa: <input type="text" id="tenhang"></label><br>
+  <label>Số lượng: <input type="number" id="soluong" oninput="capNhatThanhTien()"></label><br>
+  <label>Đơn giá: <input type="number" id="dongia" oninput="capNhatThanhTien()"></label><br>
+  <label>Thành tiền: <input type="number" id="thanhtien" readonly></label>
+  <button class="btn" onclick="nhapGiaoDich()">Nhập</button>
+  <button class="btn" onclick="xuatExcel()">Xuất Excel</button>
+  <button class="btn" onclick="inBaoCao()">In báo cáo</button>
+</div>
+
+<div class="card">
+  <h2>Chi tiết giao dịch</h2>
+  <table>
+    <thead>
+      <tr>
+        <th>STT</th><th>Ngày</th><th>Mã KH</th><th>Tên</th><th>Loại</th><th>Tên hàng</th><th>SL</th><th>Đơn giá</th><th>Thành tiền</th><th>Hành động</th>
+      </tr>
+    </thead>
+    <tbody id="bangChiTiet"></tbody>
+  </table>
+</div>
+
+<div class="card">
+  <h2>Tổng hợp công nợ</h2>
+  <table>
+    <thead>
+      <tr><th>Tên</th><th>Nợ đầu kỳ</th><th>Ghi nợ</th><th>Trả nợ</th><th>Nợ hiện tại</th></tr>
+    </thead>
+    <tbody id="bangTongHop"></tbody>
+  </table>
+</div>
+
+<script>
+let giaoDichList = JSON.parse(localStorage.getItem("congno") || "[]");
+let maTenMap = JSON.parse(localStorage.getItem("ma_ten_map") || '{}');
+let editingIndex = -1;
+
+function capNhatThanhTien() {
+  const sl = parseFloat(document.getElementById("soluong").value) || 0;
+  const dg = parseFloat(document.getElementById("dongia").value) || 0;
+  document.getElementById("thanhtien").value = (sl * dg).toFixed(0);
+}
+
+function layTenTuMa() {
+  const ma = document.getElementById("maKH").value.trim();
+  if (maTenMap[ma]) {
+    document.getElementById("ten").value = maTenMap[ma];
+  }
+}
+
+function nhapGiaoDich() {
+  const maKH = document.getElementById("maKH").value.trim();
+  const ten = document.getElementById("ten").value.trim();
+  const ngay = document.getElementById("ngay").value;
+  const loai = document.getElementById("loai").value;
+  const tenhang = document.getElementById("tenhang").value;
+  const soluong = parseFloat(document.getElementById("soluong").value);
+  const dongia = parseFloat(document.getElementById("dongia").value);
+  const thanhtien = parseFloat(document.getElementById("thanhtien").value);
+  if (!ten || !ngay || isNaN(thanhtien)) return alert("Vui lòng nhập đầy đủ");
+
+   if (maKH && ten) {
+    localStorage.setItem("ma_ten_map", JSON.stringify(maTenMap));
+  }
+
+  capNhatDatalistMaTen();
+  const data = { maKH, ten, ngay, loai, tenhang, soluong, dongia, thanhtien };
+  if (editingIndex >= 0) {
+    giaoDichList[editingIndex] = data;
+    editingIndex = -1;
+  } else {
+    giaoDichList.push(data);
+  }
+  localStorage.setItem("congno", JSON.stringify(giaoDichList));
+  capNhatBang();
+}
+
+
+function suaGiaoDich(index) {
+
+  const g = giaoDichList[index];
+
+  document.getElementById("maKH").value = g.maKH;}
+
+
+  
+  document.getElementById("ten").value = g.ten;
+
+  document.getElementById("ngay").value = g.ngay;
+
+  document.getElementById("loai").value = g.loai;
+
+  document.getElementById("tenhang").value = g.tenhang;
+
+  document.getElementById("soluong").value = g.soluong;
+
+  document.getElementById("dongia").value = g.dongia;
+
+  document.getElementById("thanhtien").value = g.thanhtien;
+
+  editingIndex = index;
+
+function capNhatDatalistMaTen() {
+  const dsMa = document.getElementById("danhSachMa");
+  const dsTen = document.getElementById("danhSachTen");
+  dsMa.innerHTML = "";
+  dsTen.innerHTML = "";
+  for (const ma in maTenMap) {
+    const optMa = document.createElement("option");
+    optMa.value = ma;
+    dsMa.appendChild(optMa);
+    const optTen = document.createElement("option");
+    optTen.value = maTenMap[ma];
+    dsTen.appendChild(optTen);
+  }
+}
+
+
+function capNhatBang() {
+  const tbody = document.getElementById("bangChiTiet");
+  const tongHopBody = document.getElementById("bangTongHop");
+  tbody.innerHTML = "";
+  tongHopBody.innerHTML = "";
+  const tongHop = {};
+  const noDauKy = {};
+  const today = new Date().toISOString().split("T")[0];
+
+giaoDichList.forEach((g) => {
+    if (!tongHop[g.ten]) tongHop[g.ten] = { ghi: 0, tra: 0 };
+    if (!noDauKy[g.ten]) noDauKy[g.ten] = 0;
+
+    if (g.ngay < today) {
+      noDauKy[g.ten] += (g.loai === "Ghi Nợ" ? g.thanhtien : -g.thanhtien);
+    } else {
+      if (g.loai === "Ghi Nợ") tongHop[g.ten].ghi += g.thanhtien;
+      else tongHop[g.ten].tra += g.thanhtien;
+    }
+  });
+
+  giaoDichList.forEach((g, i) => {
+    const tr = document.createElement("tr");
+    tr.innerHTML = `
+      <td>${i + 1}</td>
+      <td>${g.ngay}</td>
+      <td>${g.maKH}</td>
+      <td>${g.ten}</td>
+      <td>${g.loai}</td>
+      <td>${g.tenhang}</td>
+      <td>${g.soluong}</td>
+      <td>${g.dongia}</td>
+      <td>${g.thanhtien.toLocaleString()}</td>
+        <td>
+        <button class="btn-warning" onclick="suaGiaoDich(${i})">Sửa</button>
+        <button class="btn-danger" onclick="xoaGiaoDich(${i})">Xóa</button>
+      </td>`;
+    tbody.appendChild(tr);
+  });
+
+for (const ten in tongHop) {
+    const g = tongHop[ten];
+    const dauky = noDauKy[ten] || 0;
+    const tr = document.createElement("tr");
+    tr.innerHTML = `<td>${ten}</td><td>${dauky}</td><td>${g.ghi}</td><td>${g.tra}</td><td>${dauky + g.ghi - g.tra}</td>`;
+    tongHopBody.appendChild(tr);
+  }
+}
+
+function xoaGiaoDich(i) {
+  if (confirm("Xóa dòng này?")) {
+    giaoDichList.splice(i, 1);
+    localStorage.setItem("congno", JSON.stringify(giaoDichList));
+    capNhatBang();
+  }
+}
+
+function xuatExcel() {
+  const wb = XLSX.utils.book_new();
+  const data = [["Ngày", "Mã KH", "Tên", "Loại", "Tên hàng", "SL", "Đơn giá", "Thành tiền"]];
+  giaoDichList.forEach(g => data.push([g.ngay, g.maKH, g.ten, g.loai, g.tenhang, g.soluong, g.dongia, g.thanhtien]));
+  const ws = XLSX.utils.aoa_to_sheet(data);
+  XLSX.utils.book_append_sheet(wb, ws, "GiaoDich");
+  XLSX.writeFile(wb, "cong_no.xlsx");
+}
+
+function inBaoCao() {
+  window.print();
+}
+
+window.onload = () => {
+  capNhatBang();
+  const dsMa = document.getElementById("danhSachMa");
+  const dsTen = document.getElementById("danhSachTen");
+  for (const ma in maTenMap) {
+    const opt = document.createElement("option");
+    opt.value = ma;
+    dsMa.appendChild(opt);
+    const optTen = document.createElement("option");
+    optTen.value = maTenMap[ma];
+    dsTen.appendChild(optTen);
+  }
+};
+</script>
+
+</body>
+</html>
