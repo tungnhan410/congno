@@ -69,19 +69,8 @@
 
 <script>
 let giaoDichList = JSON.parse(localStorage.getItem("congno") || "[]");
-let ma_ten_map = JSON.parse(localStorage.getItem("ma_ten_map") || '{"001":"tungnhangaming"}');
-const maTenMap = {
-    "001": "tungnhangaming",
-    "002": "Bùi Thị Thanh Tuyền",
-    "003": "lethib"
-  };
-
-
-
-
+let maTenMap = JSON.parse(localStorage.getItem("ma_ten_map") || '{}');
 let editingIndex = -1;
-
-
 
 function capNhatThanhTien() {
   const sl = parseFloat(document.getElementById("soluong").value) || 0;
@@ -107,12 +96,11 @@ function nhapGiaoDich() {
   const thanhtien = parseFloat(document.getElementById("thanhtien").value);
   if (!ten || !ngay || isNaN(thanhtien)) return alert("Vui lòng nhập đầy đủ");
 
-  // Lưu mã-tên KH nếu mới
-  if (maKH && ten && !maTenMap[maKH]) {
-    maTenMap[maKH] = ten;
+   if (maKH && ten) {
     localStorage.setItem("ma_ten_map", JSON.stringify(maTenMap));
   }
 
+  capNhatDatalistMaTen();
   const data = { maKH, ten, ngay, loai, tenhang, soluong, dongia, thanhtien };
   if (editingIndex >= 0) {
     giaoDichList[editingIndex] = data;
@@ -123,6 +111,47 @@ function nhapGiaoDich() {
   localStorage.setItem("congno", JSON.stringify(giaoDichList));
   capNhatBang();
 }
+
+
+function suaGiaoDich(index) {
+
+  const g = giaoDichList[index];
+
+  document.getElementById("maKH").value = g.maKH;}
+
+
+  
+  document.getElementById("ten").value = g.ten;
+
+  document.getElementById("ngay").value = g.ngay;
+
+  document.getElementById("loai").value = g.loai;
+
+  document.getElementById("tenhang").value = g.tenhang;
+
+  document.getElementById("soluong").value = g.soluong;
+
+  document.getElementById("dongia").value = g.dongia;
+
+  document.getElementById("thanhtien").value = g.thanhtien;
+
+  editingIndex = index;
+
+function capNhatDatalistMaTen() {
+  const dsMa = document.getElementById("danhSachMa");
+  const dsTen = document.getElementById("danhSachTen");
+  dsMa.innerHTML = "";
+  dsTen.innerHTML = "";
+  for (const ma in maTenMap) {
+    const optMa = document.createElement("option");
+    optMa.value = ma;
+    dsMa.appendChild(optMa);
+    const optTen = document.createElement("option");
+    optTen.value = maTenMap[ma];
+    dsTen.appendChild(optTen);
+  }
+}
+
 
 function capNhatBang() {
   const tbody = document.getElementById("bangChiTiet");
